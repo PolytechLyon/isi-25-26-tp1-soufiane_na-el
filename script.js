@@ -1,56 +1,90 @@
-const list = document.getElementById('todo-list');
-const newPanel = document.getElementById('new-item');
-const editPanel = document.getElementById('edit-item');
-const addInput = document.getElementById('new-todo-item-title');
-const addBtn = document.getElementById('new-todo-item-add');
-const editInput = document.getElementById('edit-todo-item-title');
-const confirmBtn = document.getElementById('edit-todo-item-confirm');
-const cancelBtn = document.getElementById('edit-todo-item-cancel');
+let todos = JSON.parse(localStorage.getItem('todos')) || [];
+let editingIndex = -1;
 
-let currentItem = null;
+const listEl = document.getElementById('todo-list');
+const newItemPanel = document.getElementById('new-item');
+const editItemPanel = document.getElementById('edit-item');
+const newTitleInput = document.getElementById('new-todo-item-title');
+const editTitleInput = document.getElementById('edit-todo-item-title');
 
-addBtn.onclick = function() {
-    if (addInput.value === '') return;
+function saveAndRender() {
+    localStorage.setItem('todos', JSON.stringify(todos));
+    render();
+}
 
-    const li = document.createElement('li');
-    const span = document.createElement('span');
-    span.textContent = addInput.value;
+function render() {
+    listEl.innerHTML = '';
+    todos.forEach((todo, index) => {
+        const li = document.createElement('li');
 
-    const editBtn = document.createElement('button');
-    editBtn.textContent = 'Modifier';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = todo.completed;
+        checkbox.onchange = () => toggleComplete(index);
 
-    editBtn.onclick = function() {
-        currentItem = span;
-        editInput.value = span.textContent;
-        newPanel.hidden = true;
-        editPanel.hidden = false;
-    };
+        const span = document.createElement('span');
+        span.textContent = todo.title;
 
-    const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = 'Supprimer';
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Modifier';
+        editBtn.onclick = () => openEdit(index);
 
-    deleteBtn.onclick = function() {
-        li.remove();
-    };
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Supprimer';
+        deleteBtn.onclick = () => deleteTodo(index);
 
-    li.appendChild(span);
-    li.appendChild(editBtn);
-    li.appendChild(deleteBtn);
-    list.appendChild(li);
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        li.appendChild(editBtn);
+        li.appendChild(deleteBtn);
+        listEl.appendChild(li);
+    });
+}
 
-    addInput.value = '';
-};
-
-confirmBtn.onclick = function() {
-    if (editInput.value !== '') {
-        currentItem.textContent = editInput.value;
+function addTodo() {
+    const title = newTitleInput.value.trim();
+    if (title) {
+        todos.push({ title: title, completed: false });
+        newTitleInput.value = '';
+        saveAndRender();
     }
-    cancelBtn.onclick();
-};
+}
 
-cancelBtn.onclick = function() {
-    newPanel.hidden = false;
-    editPanel.hidden = true;
-    currentItem = null;
-    editInput.value = '';
-};
+function deleteTodo(index) {
+    todos.splice(index, 1);
+    saveAndRender();
+}
+
+function toggleComplete(index) {
+    todos[index].completed = !todos[index].completed;
+    saveAndRender();
+}
+
+function openEdit(index) {
+    editingIndex = index;
+    editTitleInput.value = todos[index].title;
+    newItemPanel.hidden = true;
+    editItemPanel.hidden = false;
+}
+
+function confirmEdit() {
+    const title = editTitleInput.value.trim();
+    if (title && editingIndex > -1) {
+        todos[editingIndex].title = title;
+        cancelEdit();
+        saveAndRender();
+    }
+}
+
+function cancelEdit() {
+    editingIndex = -1;
+    editTitleInput.value = '';
+    newItemPanel.hidden = false;
+    editItemPanel.hidden = true;
+}
+
+document.getElementById('new-todo-item-add').onclick = addTodo;
+document.getElementById('edit-todo-item-confirm').onclick = confirmEdit;
+document.getElementById('edit-todo-item-cancel').onclick = cancelEdit;
+
+render();
